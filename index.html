@@ -2,8 +2,8 @@
 <html>
 <head>
     <title>Котик vs Песик</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
     <style>
         body { font-family: Arial; text-align: center; padding: 20px; }
         #preview { max-width: 300px; margin: 20px auto; }
@@ -21,25 +21,46 @@
     const modelURL = 'https://mhan7904.github.io/cat-dog-classifier/model.json';
     const metadataURL = 'https://mhan7904.github.io/cat-dog-classifier/metadata.json';
     let model;
+    let isModelLoading = false;
 
     async function init() {
         try {
+            // Проверяем, что TensorFlow.js загружен
+            if (typeof tf === 'undefined') {
+                throw new Error("TensorFlow.js не загружен");
+            }
+            
+            // Проверяем, что Teachable Machine Image загружен
+            if (typeof tmImage === 'undefined') {
+                throw new Error("Teachable Machine Image не загружен");
+            }
+            
+            console.log("Начинаем загрузку модели...");
+            isModelLoading = true;
             model = await tmImage.load(modelURL, metadataURL);
+            isModelLoading = false;
             console.log("Модель загружена!");
         } catch (error) {
-        console.error("Ошибка загрузки модели:", error);
-        alert("Ошибка загрузки модели. Проверьте консоль.");
-    }
-   }     
-    document.getElementById('upload').addEventListener('change', async (e) => {
-        if (!model) { // Добавить эту проверку
-        alert("Модель еще не загрузилась! Подождите...");
-        return;
+            isModelLoading = false;
+            console.error("Ошибка загрузки модели:", error);
+            alert("Ошибка загрузки модели. Проверьте консоль.");
         }
+    }     
+    
+    document.getElementById('upload').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
+        
+        if (!model) {
+            if (isModelLoading) {
+                alert("Модель еще загружается. Пожалуйста, подождите...");
+            } else {
+                alert("Модель не загружена. Попробуйте обновить страницу.");
+            }
+            return;
+        }
 
+        const reader = new FileReader();
         reader.onload = async (event) => {
             const img = new Image();
             img.src = event.target.result;
@@ -57,18 +78,28 @@
                     document.getElementById('result').innerHTML = `
                         Это <strong>${result.className}</strong> с вероятностью ${Math.round(result.probability * 100)}%!
                     `;
-                    } catch (error) {
+                } catch (error) {
                     console.error("Ошибка предсказания:", error);
                     alert("Ошибка обработки изображения");
-                } finally {
-                    URL.revokeObjectURL(img.src);
                 }
-                    };
             };
-            reader.readAsDataURL(file);
-        });
+            
+            img.onerror = () => {
+                console.error("Ошибка загрузки изображения");
+                alert("Не удалось загрузить изображение");
+            };
+        };
+        
+        reader.onerror = () => {
+            console.error("Ошибка чтения файла");
+            alert("Не удалось прочитать файл");
+        };
+        
+        reader.readAsDataURL(file);
+    });
 
-    init();
+    // Инициализируем модель после загрузки страницы
+    window.addEventListener('DOMContentLoaded', init);
 </script>
 
 </body>
