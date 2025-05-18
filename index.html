@@ -30,13 +30,14 @@
         console.error("Ошибка загрузки модели:", error);
         alert("Ошибка загрузки модели. Проверьте консоль.");
     }
-        
+   }     
     document.getElementById('upload').addEventListener('change', async (e) => {
         if (!model) { // Добавить эту проверку
         alert("Модель еще не загрузилась! Подождите...");
         return;
         }
         const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
 
         reader.onload = async (event) => {
