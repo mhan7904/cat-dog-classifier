@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Котик vs Песик</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <style>
+        body { font-family: Arial; text-align: center; padding: 20px; }
+        #preview { max-width: 300px; margin: 20px auto; }
+        #result { font-size: 20px; color: #333; }
+    </style>
+</head>
+<body>
+
+<h2>Загрузите фото котика или песика</h2>
+<input type="file" id="upload" accept="image/*">
+<div id="preview"></div>
+<div id="result"></div>
+
+<script>
+    const modelURL = 'https://drive.google.com/uc?id=1hc09kwIG46zHO_aY07medQv5jpVggqdU';
+    const metadataURL = 'https://drive.google.com/uc?id=15nf_RTV-jqdMTovMq3cOg09ck66hBwSl';
+    let model;
+
+    async function init() {
+        model = await tmImage.load(modelURL, metadataURL);
+        console.log("Модель загружена!");
+    }
+
+    document.getElementById('upload').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            
+            img.onload = async () => {
+                // Показываем превью
+                document.getElementById('preview').innerHTML = `<img src="${img.src}" style="max-width:100%">`;
+                
+                // Делаем предсказание
+                const prediction = await model.predict(img);
+                const result = prediction.reduce((a, b) => a.probability > b.probability ? a : b);
+                
+                // Выводим результат
+                document.getElementById('result').innerHTML = `
+                    Это <strong>${result.className}</strong> с вероятностью ${Math.round(result.probability * 100)}%!
+                `;
+            };
+        };
+        reader.readAsDataURL(file);
+    });
+
+    init();
+</script>
+
+</body>
+</html>
